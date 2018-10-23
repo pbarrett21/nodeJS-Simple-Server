@@ -24,7 +24,7 @@ const port = randomizePort(LOWERPORT, UPPERPORT);
 function giveComic(acceptedURL){
 	if(acceptedURL.substring(7) == "CURRENT"){
 		console.log("nice job picking that substring champ");
-		exec('wget ' + 'http://dilbert.com', function(error, stdout, stderror){
+		exec('curl ' + '"http://dilbert.com"', {env: {'PATH': '/usr/bin'}}, function(error, stdout, stderror){
 			if (error){
 				console.error('Exec error'+error);
 				return;
