@@ -10,17 +10,13 @@ const UPPERPORT = 34999;
 const exec = require('child_process').exec;
 const hostname = 'violet.cs.uky.edu';
 const port = randomizePort(LOWERPORT, UPPERPORT);
+const fs = require('fs');
 var acceptableURL = /^\/COMIC\/\d\d\d\d\-\d\d\-\d\d$|^\/COMIC\/CURRENT$|^\/SEARCH\/[a-zA-Z0-9]+$|^\/MYFILE\/[a-zA-Z0-9]+.html$/; 
-
 var http = require("http"),
 	url = require('url');
 
 function randomizePort(startport, endport) {
 	return Math.floor(Math.random() * (endport - startport + 1)) + startport;
-}
-
-function giveFile(acceptedURL){
-	var requestedFile = acceptedURL.substring(8);
 }
 
 function callCurlExec(reqURL, isCurrent, isSearch, response){
@@ -73,8 +69,17 @@ function doSearch(acceptedURL, response){
 
 function giveFile(acceptedURL, response){
 	var requestedFile = acceptedURL.substring(8);
+	var path = "./private_html/"+requestedFile;
 	if(acceptedURL.match(/^\/MYFILE\/[a-zA-Z0-9]+.html$/)){
 		//read file in ./private_html/
+		if(fs.existsSync(path)){
+			console.log("file found");
+			fs.readFile(path, (error, data) => {
+				if (error) throw error;
+				response.write(data);
+				response.end();
+			});
+		}
 	}
 }
 
@@ -87,6 +92,7 @@ function serveURL(request, response) {
 		console.log("VALID: Hey, the client requested the URL: ("+xurl+")");
 		giveComic(xurl, response);
 		doSearch(xurl, response);
+		giveFile(xurl, response);
 	} else {
 		console.log("BAD:   Hey, the client requested the URL: ("+xurl+")");
 		response.end();
