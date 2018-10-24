@@ -1,9 +1,6 @@
 // Paul Barrett
 
 // https://nodejs.org/api/http.html
-//
-// This example uses a named function doprocess() for the callback function
-// sent to the createServer() method.
 
 const LOWERPORT = 34999;
 const UPPERPORT = 34999;
@@ -19,51 +16,48 @@ function randomizePort(startport, endport) {
 	return Math.floor(Math.random() * (endport - startport + 1)) + startport;
 }
 
-function callCurlExec(reqURL, isCurrent, isSearch, response){
-	if(isCurrent){
-		exec('curl ' + '"http://dilbert.com"', {env: {'PATH': '/usr/bin'}}, function(error, stdout, stderror){
-			if (error){
-				console.error('Exec error'+error);
-				return;
-			}
-			response.write(stdout);
-		});
-	} else if (isSearch) {
-		exec('curl ' + '"https://duckduckgo.com/html/?q=' + reqURL + '&ia=web"', {env: {'PATH': '/usr/bin'}}, function(error, stdout, stderror){
-			if (error){
-				console.error('Exec error'+error);
-				return;
-			}
-			response.write(stdout);
-		});
-		
-	} else {
-		exec('curl ' + '"http://dilbert.com/strip/' + reqURL + '"', {env: {'PATH': '/usr/bin'}}, function(error, stdout, stderror){
-			if (error){
-				console.error('Exec error'+error);
-				return;
-			}
-			response.write(stdout);
-		});
+function curlExec(whichone, reqURL, response){
+	var placeholder;
+	var curlstrip = 'curl ' + 'http://dilbert.com/strip/' + reqURL;
+	var curlcurrent = 'curl ' + 'http://dilbert.com';
+	var curlsearch = 'curl ' + 'https://duckduckgo.com/html/?q=' + reqURL + '&ia=web';
+	if(whichone == "strip"){
+		placeholder = curlstrip;
+	} else if (whichone == "current"){
+		placeholder = curlcurrent;
+	} else if (whichone == "search"){
+		placeholder = curlsearch;
 	}
+
+	exec(placeholder, {env: {'PATH': '/usr/bin'}}, (error, data, stderror) => {
+		if(error) {
+			console.error('Exec error' + error);
+			return;
+		}
+		response.write(data);
+		response.end();
+	});
 }
 
 function giveComic(acceptedURL, response){
 	var requestedURL = acceptedURL.substring(7);
-	var isCurrentURL;
-	if(requestedURL == "CURRENT"){
-		isCurrentURL = true;
-		callCurlExec(requestedURL, isCurrentURL, false, response);
-	} else if (requestedURL.match(/^\d\d\d\d\-\d\d\-\d\d$/)){
-		isCurrentURL = false;
-		callCurlExec(requestedURL, isCurrentURL, false, response);			
+	if(acceptedURL.match(/^\/COMIC\/\d\d\d\d\-\d\d\-\d\d$|^\/COMIC\/CURRENT$/)){
+		if(requestedURL == "CURRENT"){
+			curlExec("current", requestedURL, response);
+		} else if (requestedURL.match(/^\d\d\d\d\-\d\d\-\d\d$/)){
+			curlExec("strip", requestedURL, response);
+		}
+	} else if(acceptedURL.substring(1,6) == "COMIC") {
+		console.log("wrong form");
+		response.write("Invalid form");
+		response.end;
 	}
 }
 
 function doSearch(acceptedURL, response){
 	var requestedURL = acceptedURL.substring(8);
 	if(acceptedURL.match(/^\/SEARCH\/[a-zA-Z0-9]+$/)){
-		callCurlExec(requestedURL, false, true, response);
+		curlExec("search", requestedURL, response);
 	}
 }
 
@@ -73,26 +67,35 @@ function giveFile(acceptedURL, response){
 	if(acceptedURL.match(/^\/MYFILE\/[a-zA-Z0-9]+.html$/)){
 		//read file in ./private_html/
 		if(fs.existsSync(path)){
-			console.log("file found");
 			fs.readFile(path, (error, data) => {
 				if (error) throw error;
+				response.write("Here are the contents of the file that you requested:</br></br>");
 				response.write(data);
 				response.end();
 			});
+		} else { //if format is correct but file cannot be located
+			response.write("The file that you requested does not exist!");
+			response.end();
 		}
+	} else if (acceptedURL.substring(1,7)=="MYFILE"){ //if the format is invalid (forgot .html, etc.)
+		response.write("Invalid format. Make sure your request is in the form /MYFILE/[a-zA-Z0-9].html");
+		response.end();
 	}
 }
+
 
 function serveURL(request, response) {
 	var xurl = request.url;
 	response.statusCode = 200;
 	response.setHeader('Content-Type', 'text/html');
-	response.write('Hello, World! You requested the following URL: '+xurl+'\n');
+	response.write('Hello, World! You requested the following URL: '+xurl+'</br>');
+
+	giveFile(xurl, response);
+	giveComic(xurl, response);
+	doSearch(xurl, response);
+
 	if(xurl.match(acceptableURL)) {
 		console.log("VALID: Hey, the client requested the URL: ("+xurl+")");
-		giveComic(xurl, response);
-		doSearch(xurl, response);
-		giveFile(xurl, response);
 	} else {
 		console.log("BAD:   Hey, the client requested the URL: ("+xurl+")");
 		response.end();
