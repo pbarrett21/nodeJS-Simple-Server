@@ -2,8 +2,8 @@
 
 // https://nodejs.org/api/http.html
 
-const LOWERPORT = 34999;
-const UPPERPORT = 34999;
+const LOWERPORT = 2000;
+const UPPERPORT = 35000;
 const exec = require('child_process').exec;
 const hostname = 'violet.cs.uky.edu';
 const port = randomizePort(LOWERPORT, UPPERPORT);
@@ -48,8 +48,7 @@ function giveComic(acceptedURL, response){
 			curlExec("strip", requestedURL, response);
 		}
 	} else if(acceptedURL.substring(1,6) == "COMIC") {
-		console.log("wrong form");
-		response.write("Invalid form");
+		response.write("Invalid format</br>Correct format is /COMIC/CURRENT for current comic or /COMIC/####-##-## for a comic on a specific date");
 		response.end;
 	}
 }
@@ -58,6 +57,9 @@ function doSearch(acceptedURL, response){
 	var requestedURL = acceptedURL.substring(8);
 	if(acceptedURL.match(/^\/SEARCH\/[a-zA-Z0-9]+$/)){
 		curlExec("search", requestedURL, response);
+	} else if (acceptedURL.substring(1,7) == "SEARCH"){
+		response.write("Incorrect search format</br>Correct format is /SEARCH/[a-zA-Z0-9]");
+		response.end();
 	}
 }
 
@@ -83,12 +85,11 @@ function giveFile(acceptedURL, response){
 	}
 }
 
-
 function serveURL(request, response) {
 	var xurl = request.url;
 	response.statusCode = 200;
 	response.setHeader('Content-Type', 'text/html');
-	response.write('Hello, World! You requested the following URL: '+xurl+'</br>');
+	response.write('Hello, World! You requested the following URL: '+xurl+'</br></br>');
 
 	giveFile(xurl, response);
 	giveComic(xurl, response);
