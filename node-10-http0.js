@@ -86,7 +86,7 @@ function giveFile(acceptedURL, response){
 				response.end();
 			});
 		} else { //if format is correct but file cannot be located
-			response.write("The file that you requested does not exist!");
+			response.write("403 ERROR: The file that you requested does not exist!");
 			response.end();
 		}
 	} else if (acceptedURL.substring(1,7)=="MYFILE"){ //if the format is invalid (forgot .html, etc.)
@@ -95,18 +95,27 @@ function giveFile(acceptedURL, response){
 	}
 }
 
+var doOnce = true;
 // handle server and call other functions
 function serveURL(request, response) {
 	var xurl = request.url;
 	response.statusCode = 200;
 	response.setHeader('Content-Type', 'text/html');
-	response.write("Welcome to my simple proxy server! You can request a comic or a file, or do a search.</br>");
-	response.write("If your request doesn't display, ensure your formatting is correct in the address bar: /COMIC/, /SEARCH/, or /MYFILE/</br>");
-	response.write('You requested the following URL: '+xurl+'</br></br>');
+
+	// Welcome and inform user how to use the server
+	if (doOnce == true){
+		response.write("Welcome to my simple proxy server! You can request a comic or a file, or do a search.</br>");
+		response.write("Examples requests you can do: /COMIC/CURRENT, /COMIC/2018-01-01, /SEARCH/purple, /MYFILE/mytrip.html</br>");
+		response.write("If your request doesn't display, ensure your formatting is correct in the address bar: /COMIC/, /SEARCH/, or /MYFILE/</br>");
+		response.write("This message will only display once.");
+		doOnce = false;
+	}
+	
 	// call functions
 	giveFile(xurl, response);
 	giveComic(xurl, response);
 	doSearch(xurl, response);
+
 	// display in console if url is valid or bad
 	if(xurl.match(acceptableURL)) {
 		console.log("VALID: Hey, the client requested the URL: ("+xurl+")");
